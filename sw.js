@@ -1,6 +1,6 @@
 // Service worker minimal : garde la page et ses icônes en cache pour un démarrage rapide
 // (et hors connexion pour l'interface). Les appels à MangaDex via le proxy ne sont jamais mis en cache ici.
-const CACHE = "manhwa-hasard-v1";
+const CACHE = "manhwa-hasard-v2";
 const SHELL = ["manhwa-hasard.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {

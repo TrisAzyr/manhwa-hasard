@@ -13,6 +13,29 @@
 <meta name="apple-mobile-web-app-title" content="Manhwa">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Manhwa au hasard</title>
+<script>
+// Navigateur mobile en mode « Version pour ordinateur » : la page est dessinée sur ~980 px puis
+// réduite, tout devient minuscule. On le détecte (écran tactile étroit mais fenêtre large) et on
+// agrandit l'affichage pour retrouver la taille mobile ; la classe « fm » désactive la mise en page large.
+(function () {
+  function fit() {
+    try {
+      var de = document.documentElement, sw = screen.width, iw = window.innerWidth; // innerWidth ignore le zoom CSS
+      var coarse = window.matchMedia && matchMedia("(pointer: coarse)").matches;
+      if (coarse && sw && sw < 600 && iw > sw * 1.25) {
+        de.classList.add("fm");
+        de.style.zoom = (iw / sw).toFixed(3);
+      } else if (de.classList.contains("fm")) {
+        de.classList.remove("fm");
+        de.style.zoom = "";
+      }
+    } catch (e) {}
+  }
+  fit();
+  window.addEventListener("resize", fit);
+  window.addEventListener("orientationchange", function () { setTimeout(fit, 300); });
+})();
+</script>
 <style>
   :root { --bg:#0e1230; --card:#1a1f4a; --accent:#8b6cf0; --text:#e8e9ff; --muted:#a4aad8; --chip:#2a3070; --line:#333a7a; --no:#e0607a; --gold:#f5c451; color-scheme:dark; }
   * { box-sizing:border-box; }
@@ -115,15 +138,15 @@
   .kbd { display:none; text-align:center; font-size:.85rem; color:var(--muted); }
 
   @media (min-width:600px) {
-    html { font-size:100%; }
-    body { padding-top:28px; }
-    h1 { font-size:1.6rem; }
-    .filters { grid-template-columns:repeat(3, 1fr); }
-    .filters .wide { grid-column:auto; }
-    .card.show { grid-template-columns:140px 1fr; }
-    .card img { width:140px; }
-    .actions { grid-template-columns:2fr 1fr 1fr; }
-    .btn.primary { grid-column:auto; }
+    html:not(.fm) { font-size:100%; }
+    html:not(.fm) body { padding-top:28px; }
+    html:not(.fm) h1 { font-size:1.6rem; }
+    html:not(.fm) .filters { grid-template-columns:repeat(3, 1fr); }
+    html:not(.fm) .filters .wide { grid-column:auto; }
+    html:not(.fm) .card.show { grid-template-columns:140px 1fr; }
+    html:not(.fm) .card img { width:140px; }
+    html:not(.fm) .actions { grid-template-columns:2fr 1fr 1fr; }
+    html:not(.fm) .btn.primary { grid-column:auto; }
   }
   @media (hover:hover) and (pointer:fine) { .kbd { display:block; } }
 </style>
@@ -162,7 +185,7 @@
   </select>
   <!-- valeur « min-max » : chapitres réellement disponibles dans la langue choisie -->
   <select id="chapters" aria-label="Nombre de chapitres disponibles">
-    <option value="1-">Toutes longueurs</option>
+    <option value="1-">Tous chapitres</option>
     <option value="5-">5 chapitres ou +</option>
     <option value="10-">10 chapitres ou +</option>
     <option value="20-">20 chapitres ou +</option>
