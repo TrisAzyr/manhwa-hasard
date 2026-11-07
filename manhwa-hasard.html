@@ -59,7 +59,10 @@
   </div>
 </div>
 <script>
-const API = "https://api.mangadex.org";
+// MangaDex n'autorise pas les appels directs depuis un autre site : on passe par notre proxy
+// (Edge Function Supabase, code dans supabase/functions/mangadex-proxy).
+const PROXY = "https://knmgodvpxkirynavofon.supabase.co/functions/v1/mangadex-proxy";
+const API = PROXY;
 const MAX_WINDOW = 10000; // l'API refuse offset + limit > 10000
 const STATUS_FR = { ongoing: "En cours", completed: "Terminé", hiatus: "En pause", cancelled: "Abandonné" };
 const $ = id => document.getElementById(id);
@@ -84,7 +87,7 @@ async function getJSON(url) {
   try {
     r = await fetch(url);
   } catch {
-    // Erreur réseau ou CORS : en file://, l'origine est "null" et MangaDex ne l'autorise pas.
+    // Erreur réseau ou CORS : en file://, l'origine est "null" et le proxy ne l'autorise pas.
     throw new Error(location.protocol === "file:"
       ? "le navigateur bloque l'appel depuis un fichier local. Lance un petit serveur dans ce dossier (par ex. <code>python3 -m http.server</code>) puis ouvre <code>http://localhost:8000/manhwa-hasard.html</code>."
       : "MangaDex est injoignable (connexion ou blocage réseau).");
@@ -159,7 +162,7 @@ function show(m) {
   if (cover?.attributes?.fileName) {
     img.hidden = false;
     img.alt = "Couverture de " + title;
-    img.src = `https://uploads.mangadex.org/covers/${m.id}/${cover.attributes.fileName}.256.jpg`;
+    img.src = `${PROXY}/cover/${m.id}/${cover.attributes.fileName}.256.jpg`;
   } else {
     img.hidden = true;
     img.removeAttribute("src");
