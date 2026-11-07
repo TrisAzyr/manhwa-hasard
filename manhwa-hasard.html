@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manhwa au hasard</title>
+<style>
+  :root { --bg:#0e1230; --card:#1a1f4a; --accent:#8b6cf0; --text:#e8e9ff; --muted:#9aa0d0; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:24px 16px; }
+  h1 { margin:0 0 16px; font-size:1.5rem; }
+  .filters { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:16px; }
+  select, button { font:inherit; padding:10px 14px; border-radius:10px; border:1px solid #333a7a; background:var(--card); color:var(--text); }
+  button.primary { background:var(--accent); border-color:var(--accent); font-weight:600; cursor:pointer; }
+  button.primary:disabled { opacity:.6; cursor:wait; }
+  .card { max-width:640px; width:100%; background:var(--card); border-radius:16px; padding:16px; display:none; gap:16px; margin-top:16px; }
+  .card.show { display:flex; }
+  .card img { width:140px; height:auto; border-radius:10px; align-self:flex-start; background:#0003; }
+  .card img[hidden] { display:none; }
+  .card h2 { margin:0 0 4px; font-size:1.2rem; }
+  .sub { font-size:.8rem; color:var(--muted); margin:0 0 8px; }
+  .tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .tags span { font-size:.75rem; background:#2a3070; padding:3px 8px; border-radius:999px; color:var(--muted); }
+  .desc { font-size:.9rem; color:var(--muted); line-height:1.4; max-height:9em; overflow:auto; white-space:pre-line; }
+  .card a { display:inline-block; margin-top:12px; color:var(--accent); }
+  .msg { margin-top:16px; color:var(--muted); text-align:center; max-width:520px; }
+  .msg code { background:#0004; padding:2px 6px; border-radius:6px; }
+  @media (max-width:520px){ .card{flex-direction:column;} .card img{width:100%;max-width:200px;} }
+</style>
+</head>
+<body>
+<h1>🎲 Manhwa au hasard</h1>
+<div class="filters">
+  <select id="lang" aria-label="Langue de traduction">
+    <option value="fr">Traduit en français</option>
+    <option value="en">Traduit en anglais</option>
+  </select>
+  <select id="status" aria-label="Statut">
+    <option value="">Tous statuts</option>
+    <option value="ongoing">En cours</option>
+    <option value="completed">Terminé</option>
+  </select>
+  <select id="origin" aria-label="Origine">
+    <option value="ko">Manhwa (coréen)</option>
+    <option value="ja">Manga (japonais)</option>
+    <option value="zh">Manhua (chinois)</option>
+  </select>
+</div>
+<button class="primary" id="go">Tirer au hasard</button>
+<div class="msg" id="msg" role="status">Clique sur le bouton pour découvrir une œuvre.</div>
+<div class="card" id="card">
+  <img id="cover" alt="" hidden>
+  <div>
+    <h2 id="title"></h2>
+    <p class="sub" id="sub"></p>
+    <div class="tags" id="tags"></div>
+    <div class="desc" id="desc"></div>
+    <a id="link" target="_blank" rel="noopener noreferrer">Voir la fiche sur MangaDex ↗</a>
+  </div>
+</div>
+<script>
+const API = "https://api.mangadex.org";
+const MAX_WINDOW = 10000; // l'API refuse offset + limit > 10000
+const STATUS_FR = { ongoing: "En cours", completed: "Terminé", hiatus: "En pause", cancelled: "Abandonné" };
+const $ = id => document.getElementById(id);
+const totals = new Map(); // cache du nombre de résultats par combinaison de filtres
+let lastId = null;
+
+function buildQuery(extra) {
+  const p = new URLSearchParams();
+  p.append("originalLanguage[]", $("origin").value);
+  p.append("availableTranslatedLanguage[]", $("lang").value);
+  p.append("contentRating[]", "safe");
+  p.append("contentRating[]", "suggestive");
+  p.append("includes[]", "cover_art");
+  p.append("order[createdAt]", "asc"); // ordre stable pour que l'offset ait un sens
+  if ($("status").value) p.append("status[]", $("status").value);
+  for (const [k, v] of Object.entries(extra)) p.append(k, v);
+  return p.toString();
+}
+
+async function getJSON(url) {
+  let r;
+  try {
+    r = await fetch(url);
+  } catch {
+    // Erreur réseau ou CORS : en file://, l'origine est "null" et MangaDex ne l'autorise pas.
+    throw new Error(location.protocol === "file:"
+      ? "le navigateur bloque l'appel depuis un fichier local. Lance un petit serveur dans ce dossier (par ex. <code>python3 -m http.server</code>) puis ouvre <code>http://localhost:8000/manhwa-hasard.html</code>."
+      : "MangaDex est injoignable (connexion ou blocage réseau).");
+  }
+  if (r.status === 429) throw new Error("trop de requêtes, patiente quelques secondes.");
+  if (!r.ok) throw new Error(`MangaDex a répondu HTTP ${r.status}.`);
+  return r.json();
+}
+
+async function pickRandom() {
+  const btn = $("go");
+  btn.disabled = true;
+  $("msg").textContent = "Recherche…";
+  $("card").classList.remove("show");
+  try {
+    const key = buildQuery({});
+    // 1) nombre d'œuvres pour ces filtres (mis en cache : un seul appel par tirage ensuite)
+    if (!totals.has(key)) {
+      const first = await getJSON(`${API}/manga?${buildQuery({ limit: 1 })}`);
+      totals.set(key, first.total);
+    }
+    const total = Math.min(totals.get(key), MAX_WINDOW);
+    if (!total) throw new Error("aucun résultat avec ces filtres.");
+    // 2) tirage d'une position au hasard (en évitant de retomber sur la même œuvre)
+    let m;
+    for (let i = 0; i < 3; i++) {
+      const offset = Math.floor(Math.random() * total);
+      const res = await getJSON(`${API}/manga?${buildQuery({ limit: 1, offset })}`);
+      totals.set(key, res.total);
+      m = res.data[0];
+      if (m && (m.id !== lastId || total === 1)) break;
+    }
+    if (!m) throw new Error("aucun résultat, réessaie.");
+    lastId = m.id;
+    show(m);
+    $("msg").textContent = "";
+  } catch (e) {
+    $("msg").innerHTML = "Impossible de charger : " + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Titre dans la langue choisie : MangaDex met souvent la VF dans altTitles.
+function pickTitle(a, lang) {
+  const alt = l => a.altTitles.find(t => t[l])?.[l];
+  return a.title[lang] || alt(lang) || a.title.en || alt("en") || Object.values(a.title)[0] || "Sans titre";
+}
+
+// Les synopsis sont en Markdown et finissent souvent par une liste de liens après « --- ».
+function cleanDesc(s) {
+  return s.split(/\n\s*-{3,}\s*\n/)[0]
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\[\/?[a-z]+\]/gi, "")   // balises BBCode du type [b] [/i]
+    .replace(/(\*\*|__|\*|_)(.+?)\1/g, "$2")
+    .replace(/^#+\s*/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function show(m) {
+  const a = m.attributes;
+  const lang = $("lang").value;
+  const desc = a.description[lang] || a.description.en || Object.values(a.description)[0] || "";
+  const cover = m.relationships.find(r => r.type === "cover_art");
+  const title = pickTitle(a, lang);
+  $("title").textContent = title;
+  $("sub").textContent = [STATUS_FR[a.status] || a.status, a.year].filter(Boolean).join(" · ");
+  $("desc").textContent = cleanDesc(desc) || "Pas de synopsis.";
+  $("link").href = `https://mangadex.org/title/${m.id}`;
+  const img = $("cover");
+  if (cover?.attributes?.fileName) {
+    img.hidden = false;
+    img.alt = "Couverture de " + title;
+    img.src = `https://uploads.mangadex.org/covers/${m.id}/${cover.attributes.fileName}.256.jpg`;
+  } else {
+    img.hidden = true;
+    img.removeAttribute("src");
+  }
+  $("tags").replaceChildren(...a.tags
+    .filter(t => t.attributes.group !== "format")
+    .slice(0, 8)
+    .map(t => {
+      const s = document.createElement("span");
+      s.textContent = t.attributes.name.fr || t.attributes.name.en;
+      return s;
+    }));
+  $("card").classList.add("show");
+}
+
+$("cover").addEventListener("error", e => { e.target.hidden = true; });
+$("go").addEventListener("click", pickRandom);
+</script>
+</body>
+</html>
