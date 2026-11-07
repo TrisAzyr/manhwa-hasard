@@ -5,14 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Manhwa au hasard</title>
 <style>
-  :root { --bg:#0e1230; --card:#1a1f4a; --accent:#8b6cf0; --text:#e8e9ff; --muted:#9aa0d0; }
+  :root { --bg:#0e1230; --card:#1a1f4a; --accent:#8b6cf0; --text:#e8e9ff; --muted:#9aa0d0; --chip:#2a3070; --no:#e0607a; }
   * { box-sizing:border-box; }
   body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:24px 16px; }
   h1 { margin:0 0 16px; font-size:1.5rem; }
-  .filters { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:16px; }
+  .filters { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:12px; }
   select, button { font:inherit; padding:10px 14px; border-radius:10px; border:1px solid #333a7a; background:var(--card); color:var(--text); }
-  button.primary { background:var(--accent); border-color:var(--accent); font-weight:600; cursor:pointer; }
+  button { cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); font-weight:600; }
   button.primary:disabled { opacity:.6; cursor:wait; }
+
+  details.tagpanel { max-width:760px; width:100%; background:var(--card); border-radius:14px; padding:10px 14px; margin-bottom:16px; }
+  details.tagpanel summary { cursor:pointer; font-weight:600; padding:4px 0; }
+  details.tagpanel summary .count { font-weight:400; color:var(--muted); font-size:.9rem; }
+  .tagtools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:10px 0; font-size:.85rem; color:var(--muted); }
+  .tagtools select, .tagtools button { padding:6px 10px; font-size:.85rem; }
+  .taggroup h3 { margin:12px 0 6px; font-size:.85rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chips button { padding:4px 10px; font-size:.8rem; border-radius:999px; background:var(--chip); border-color:transparent; color:var(--text); }
+  .chips button[data-state="in"]  { background:var(--accent); }
+  .chips button[data-state="in"]::before  { content:"✓ "; }
+  .chips button[data-state="out"] { background:transparent; border-color:var(--no); color:var(--no); text-decoration:line-through; }
+  .chips button[data-state="out"]::before { content:"✕ "; }
+
   .card { max-width:640px; width:100%; background:var(--card); border-radius:16px; padding:16px; display:none; gap:16px; margin-top:16px; }
   .card.show { display:flex; }
   .card img { width:140px; height:auto; border-radius:10px; align-self:flex-start; background:#0003; }
@@ -20,7 +35,7 @@
   .card h2 { margin:0 0 4px; font-size:1.2rem; }
   .sub { font-size:.8rem; color:var(--muted); margin:0 0 8px; }
   .tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
-  .tags span { font-size:.75rem; background:#2a3070; padding:3px 8px; border-radius:999px; color:var(--muted); }
+  .tags span { font-size:.75rem; background:var(--chip); padding:3px 8px; border-radius:999px; color:var(--muted); }
   .desc { font-size:.9rem; color:var(--muted); line-height:1.4; max-height:9em; overflow:auto; white-space:pre-line; }
   .card a { display:inline-block; margin-top:12px; color:var(--accent); }
   .msg { margin-top:16px; color:var(--muted); text-align:center; max-width:520px; }
@@ -45,7 +60,29 @@
     <option value="ja">Manga (japonais)</option>
     <option value="zh">Manhua (chinois)</option>
   </select>
+  <select id="minch" aria-label="Nombre minimum de chapitres">
+    <option value="1">Au moins 1 chapitre</option>
+    <option value="10">10 chapitres et +</option>
+    <option value="30">30 chapitres et +</option>
+    <option value="50">50 chapitres et +</option>
+    <option value="100">100 chapitres et +</option>
+  </select>
 </div>
+
+<details class="tagpanel" id="tagpanel">
+  <summary>Genres et thèmes <span class="count" id="tagcount"></span></summary>
+  <div class="tagtools">
+    <span>1 clic : inclure · 2 clics : exclure · 3 clics : retirer</span>
+    <select id="tagmode" aria-label="Combinaison des tags inclus">
+      <option value="AND">Tous les tags cochés</option>
+      <option value="OR">Au moins un des tags cochés</option>
+    </select>
+    <button type="button" id="tagreset">Tout effacer</button>
+  </div>
+  <div class="taggroup"><h3>Genres</h3><div class="chips" id="chips-genre">Chargement…</div></div>
+  <div class="taggroup"><h3>Thèmes</h3><div class="chips" id="chips-theme"></div></div>
+</details>
+
 <button class="primary" id="go">Tirer au hasard</button>
 <div class="msg" id="msg" role="status">Clique sur le bouton pour découvrir une œuvre.</div>
 <div class="card" id="card">
@@ -64,10 +101,34 @@
 const PROXY = "https://knmgodvpxkirynavofon.supabase.co/functions/v1/mangadex-proxy";
 const API = PROXY;
 const MAX_WINDOW = 10000; // l'API refuse offset + limit > 10000
+const BATCH = 10;         // candidats récupérés par appel, vérifiés un par un pour les chapitres
+const MAX_BATCHES = 3;    // au-delà, on abandonne et on propose d'élargir les filtres
 const STATUS_FR = { ongoing: "En cours", completed: "Terminé", hiatus: "En pause", cancelled: "Abandonné" };
+const LANG_FR = { fr: "en français", en: "en anglais" };
+// Noms français des tags MangaDex (l'API ne les fournit qu'en anglais).
+const TAG_FR = {
+  "Action":"Action","Adventure":"Aventure","Boys' Love":"Boys' Love","Comedy":"Comédie","Crime":"Crime","Drama":"Drame",
+  "Fantasy":"Fantasy","Girls' Love":"Girls' Love","Historical":"Historique","Horror":"Horreur","Isekai":"Isekai",
+  "Magical Girls":"Magical girls","Mecha":"Mecha","Medical":"Médical","Mystery":"Mystère","Philosophical":"Philosophique",
+  "Psychological":"Psychologique","Romance":"Romance","Sci-Fi":"Science-fiction","Slice of Life":"Tranche de vie",
+  "Sports":"Sport","Superhero":"Super-héros","Thriller":"Thriller","Tragedy":"Tragédie","Wuxia":"Wuxia",
+  "Aliens":"Extraterrestres","Animals":"Animaux","Cooking":"Cuisine","Crossdressing":"Travestissement","Delinquents":"Délinquants",
+  "Demons":"Démons","Genderswap":"Changement de genre","Ghosts":"Fantômes","Gyaru":"Gyaru","Harem":"Harem","Incest":"Inceste",
+  "Loli":"Loli","Mafia":"Mafia","Magic":"Magie","Mahjong":"Mahjong","Martial Arts":"Arts martiaux","Military":"Militaire",
+  "Monster Girls":"Monster girls","Monsters":"Monstres","Music":"Musique","Ninja":"Ninja","Office Workers":"Employés de bureau",
+  "Police":"Police","Post-Apocalyptic":"Post-apocalyptique","Reincarnation":"Réincarnation","Reverse Harem":"Harem inversé",
+  "Samurai":"Samouraï","School Life":"Vie scolaire","Shota":"Shota","Supernatural":"Surnaturel","Survival":"Survie",
+  "Time Travel":"Voyage dans le temps","Traditional Games":"Jeux traditionnels","Vampires":"Vampires","Video Games":"Jeux vidéo",
+  "Villainess":"Méchante","Virtual Reality":"Réalité virtuelle","Zombies":"Zombies",
+  "Long Strip":"Format webtoon","Full Color":"Tout en couleur","Web Comic":"Web comic","Oneshot":"One-shot","Adaptation":"Adaptation",
+};
 const $ = id => document.getElementById(id);
-const totals = new Map(); // cache du nombre de résultats par combinaison de filtres
+const totals = new Map();       // nombre de résultats par combinaison de filtres
+const chapterCache = new Map(); // nombre de chapitres par "id|langue"
+const tagState = new Map();     // id du tag -> "in" | "out"
 let lastId = null;
+
+const tagLabel = t => TAG_FR[t.attributes.name.en] || t.attributes.name.en;
 
 function buildQuery(extra) {
   const p = new URLSearchParams();
@@ -78,6 +139,8 @@ function buildQuery(extra) {
   p.append("includes[]", "cover_art");
   p.append("order[createdAt]", "asc"); // ordre stable pour que l'offset ait un sens
   if ($("status").value) p.append("status[]", $("status").value);
+  for (const [id, s] of tagState) p.append(s === "in" ? "includedTags[]" : "excludedTags[]", id);
+  if ([...tagState.values()].includes("in")) p.append("includedTagsMode", $("tagmode").value);
   for (const [k, v] of Object.entries(extra)) p.append(k, v);
   return p.toString();
 }
@@ -97,33 +160,107 @@ async function getJSON(url) {
   return r.json();
 }
 
+// ---- Genres et thèmes -------------------------------------------------------
+async function loadTags() {
+  try {
+    const res = await getJSON(`${API}/manga/tag`);
+    for (const group of ["genre", "theme"]) {
+      const tags = res.data
+        .filter(t => t.attributes.group === group)
+        .sort((a, b) => tagLabel(a).localeCompare(tagLabel(b), "fr"));
+      $("chips-" + group).replaceChildren(...tags.map(t => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.dataset.id = t.id;
+        b.textContent = tagLabel(t);
+        b.addEventListener("click", () => cycleTag(b));
+        return b;
+      }));
+    }
+  } catch (e) {
+    $("chips-genre").innerHTML = "Impossible de charger les tags : " + e.message;
+  }
+}
+
+function cycleTag(b) {
+  const next = { undefined: "in", in: "out", out: undefined }[tagState.get(b.dataset.id)];
+  if (next) { tagState.set(b.dataset.id, next); b.dataset.state = next; }
+  else { tagState.delete(b.dataset.id); delete b.dataset.state; }
+  b.setAttribute("aria-pressed", next === "in" ? "true" : next === "out" ? "mixed" : "false");
+  updateTagCount();
+}
+
+function updateTagCount() {
+  const v = [...tagState.values()];
+  const inc = v.filter(s => s === "in").length, exc = v.length - inc;
+  const parts = [];
+  if (inc) parts.push(`${inc} inclus`);
+  if (exc) parts.push(`${exc} exclu${exc > 1 ? "s" : ""}`);
+  $("tagcount").textContent = parts.length ? `(${parts.join(", ")})` : "";
+}
+
+$("tagreset").addEventListener("click", () => {
+  tagState.clear();
+  document.querySelectorAll(".chips button").forEach(b => { delete b.dataset.state; b.setAttribute("aria-pressed", "false"); });
+  updateTagCount();
+});
+
+// ---- Chapitres ---------------------------------------------------------------
+// /aggregate donne les chapitres réellement disponibles dans la langue choisie,
+// regroupés par volume (chaque numéro de chapitre une seule fois, toutes équipes confondues).
+async function chapterCount(id, lang) {
+  const key = id + "|" + lang;
+  if (!chapterCache.has(key)) {
+    const res = await getJSON(`${API}/manga/${id}/aggregate?translatedLanguage[]=${lang}`);
+    const vols = Object.values(res.volumes || {});
+    chapterCache.set(key, vols.reduce((n, v) => n + Object.keys(v.chapters || {}).length, 0));
+  }
+  return chapterCache.get(key);
+}
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+// ---- Tirage ------------------------------------------------------------------
 async function pickRandom() {
   const btn = $("go");
   btn.disabled = true;
   $("msg").textContent = "Recherche…";
   $("card").classList.remove("show");
+  const lang = $("lang").value, min = +$("minch").value;
   try {
     const key = buildQuery({});
-    // 1) nombre d'œuvres pour ces filtres (mis en cache : un seul appel par tirage ensuite)
+    // 1) nombre d'œuvres pour ces filtres (mis en cache)
     if (!totals.has(key)) {
       const first = await getJSON(`${API}/manga?${buildQuery({ limit: 1 })}`);
       totals.set(key, first.total);
     }
     const total = Math.min(totals.get(key), MAX_WINDOW);
-    if (!total) throw new Error("aucun résultat avec ces filtres.");
-    // 2) tirage d'une position au hasard (en évitant de retomber sur la même œuvre)
-    let m;
-    for (let i = 0; i < 3; i++) {
-      const offset = Math.floor(Math.random() * total);
-      const res = await getJSON(`${API}/manga?${buildQuery({ limit: 1, offset })}`);
+    if (!total) throw new Error("aucune œuvre ne correspond à ces filtres.");
+    // 2) on tire un paquet d'œuvres à une position au hasard, puis on garde
+    //    la première (dans un ordre mélangé) qui a assez de chapitres.
+    let checked = 0;
+    for (let batch = 0; batch < MAX_BATCHES; batch++) {
+      const offset = Math.floor(Math.random() * Math.max(1, total - BATCH + 1));
+      const res = await getJSON(`${API}/manga?${buildQuery({ limit: BATCH, offset })}`);
       totals.set(key, res.total);
-      m = res.data[0];
-      if (m && (m.id !== lastId || total === 1)) break;
+      const candidates = shuffle(res.data.filter(m => m.id !== lastId || res.data.length === 1));
+      for (const m of candidates) {
+        checked++;
+        $("msg").textContent = `Vérification des chapitres… (${checked})`;
+        const n = await chapterCount(m.id, lang);
+        if (n >= min) {
+          lastId = m.id;
+          show(m, n);
+          $("msg").textContent = "";
+          return;
+        }
+      }
+      if (total <= BATCH) break; // tout a déjà été vérifié
     }
-    if (!m) throw new Error("aucun résultat, réessaie.");
-    lastId = m.id;
-    show(m);
-    $("msg").textContent = "";
+    throw new Error(`aucune œuvre avec au moins ${min} chapitre${min > 1 ? "s" : ""} ${LANG_FR[lang]} trouvée parmi les ${checked} vérifiées. Réessaie ou élargis les filtres.`);
   } catch (e) {
     $("msg").innerHTML = "Impossible de charger : " + e.message;
   } finally {
@@ -148,14 +285,18 @@ function cleanDesc(s) {
     .trim();
 }
 
-function show(m) {
+function show(m, chapters) {
   const a = m.attributes;
   const lang = $("lang").value;
   const desc = a.description[lang] || a.description.en || Object.values(a.description)[0] || "";
   const cover = m.relationships.find(r => r.type === "cover_art");
   const title = pickTitle(a, lang);
   $("title").textContent = title;
-  $("sub").textContent = [STATUS_FR[a.status] || a.status, a.year].filter(Boolean).join(" · ");
+  $("sub").textContent = [
+    STATUS_FR[a.status] || a.status,
+    a.year,
+    `${chapters} chapitre${chapters > 1 ? "s" : ""} ${LANG_FR[lang]}`,
+  ].filter(Boolean).join(" · ");
   $("desc").textContent = cleanDesc(desc) || "Pas de synopsis.";
   $("link").href = `https://mangadex.org/title/${m.id}`;
   const img = $("cover");
@@ -168,11 +309,11 @@ function show(m) {
     img.removeAttribute("src");
   }
   $("tags").replaceChildren(...a.tags
-    .filter(t => t.attributes.group !== "format")
+    .filter(t => t.attributes.group === "genre" || t.attributes.group === "theme")
     .slice(0, 8)
     .map(t => {
       const s = document.createElement("span");
-      s.textContent = t.attributes.name.fr || t.attributes.name.en;
+      s.textContent = tagLabel(t);
       return s;
     }));
   $("card").classList.add("show");
@@ -180,6 +321,7 @@ function show(m) {
 
 $("cover").addEventListener("error", e => { e.target.hidden = true; });
 $("go").addEventListener("click", pickRandom);
+loadTags();
 </script>
 </body>
 </html>
