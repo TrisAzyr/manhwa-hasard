@@ -4,34 +4,46 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0e1230">
+<meta name="description" content="Tire au hasard un manhwa, manga ou manhua à lire, filtré par genres, thèmes, nombre de chapitres et popularité.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Manhwa">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Manhwa au hasard</title>
 <style>
-  :root { --bg:#0e1230; --card:#1a1f4a; --accent:#8b6cf0; --text:#e8e9ff; --muted:#9aa0d0; --chip:#2a3070; --line:#333a7a; --no:#e0607a; color-scheme:dark; }
+  :root { --bg:#0e1230; --card:#1a1f4a; --accent:#8b6cf0; --text:#e8e9ff; --muted:#a4aad8; --chip:#2a3070; --line:#333a7a; --no:#e0607a; --gold:#f5c451; color-scheme:dark; }
   * { box-sizing:border-box; }
-  html { -webkit-text-size-adjust:100%; }
-  body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh;
-         padding:16px 16px calc(96px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color:transparent; }
+  /* Texte de base à 17px sur mobile (plus lisible), 16px sur grand écran */
+  html { -webkit-text-size-adjust:100%; font-size:106.25%; }
+  body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; line-height:1.4;
+         padding:calc(14px + env(safe-area-inset-top)) 16px calc(100px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color:transparent; }
   main { max-width:640px; margin:0 auto; display:flex; flex-direction:column; gap:12px; }
-  h1 { margin:0 0 4px; font-size:1.3rem; text-align:center; }
-  /* 16px minimum dans les champs : évite le zoom automatique d'iOS au toucher */
-  select, button { font:inherit; font-size:1rem; min-height:44px; padding:8px 12px; border-radius:12px; border:1px solid var(--line); background:var(--card); color:var(--text); }
+  h1 { margin:0 0 4px; font-size:1.4rem; text-align:center; }
+  select, button { font:inherit; font-size:1rem; min-height:46px; padding:8px 12px; border-radius:12px; border:1px solid var(--line); background:var(--card); color:var(--text); }
   button { cursor:pointer; touch-action:manipulation; }
   .filters { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   .filters select { width:100%; min-width:0; }
+  .filters .wide { grid-column:1 / -1; }
+  .toggle { display:flex; align-items:center; gap:10px; min-height:44px; font-size:.95rem; color:var(--muted); cursor:pointer; }
+  .toggle input { width:22px; height:22px; accent-color:var(--accent); margin:0; flex:none; }
 
-  details.tagpanel { background:var(--card); border-radius:14px; }
-  details.tagpanel summary { cursor:pointer; font-weight:600; min-height:48px; padding:12px 14px; display:flex; flex-wrap:wrap; align-items:center; gap:2px 8px; padding-right:36px; position:relative; list-style:none; }
-  details.tagpanel summary::-webkit-details-marker { display:none; }
-  details.tagpanel summary::after { content:"▾"; position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--muted); }
-  details.tagpanel[open] summary::after { content:"▴"; }
-  details.tagpanel summary .count { font-weight:400; color:var(--accent); font-size:.9rem; white-space:nowrap; }
-  .tagbody { padding:0 14px 14px; }
-  .tagtools { display:grid; grid-template-columns:1fr auto; gap:8px; margin-bottom:4px; }
+  details.panel { background:var(--card); border-radius:14px; }
+  details.panel summary { cursor:pointer; font-weight:600; min-height:50px; padding:12px 40px 12px 14px; position:relative; list-style:none;
+                          display:flex; flex-wrap:wrap; align-items:center; gap:2px 8px; }
+  details.panel summary::-webkit-details-marker { display:none; }
+  details.panel summary::after { content:"▾"; position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--muted); }
+  details.panel[open] summary::after { content:"▴"; }
+  details.panel summary .count { font-weight:400; color:var(--accent); font-size:.9rem; white-space:nowrap; }
+  .panelbody { padding:0 14px 14px; }
+  .tagtools { display:grid; grid-template-columns:1fr auto; gap:8px; }
   .tagtools select { width:100%; min-width:0; }
-  .taghelp { font-size:.8rem; color:var(--muted); margin:4px 0 0; }
-  .taggroup h3 { margin:14px 0 8px; font-size:.8rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .help { font-size:.85rem; color:var(--muted); margin:6px 0 0; }
+  .taggroup h3 { margin:14px 0 8px; font-size:.85rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
   .chips { display:flex; flex-wrap:wrap; gap:8px; }
-  .chips button { min-height:38px; padding:6px 12px; font-size:.9rem; border-radius:999px; background:var(--chip); border-color:transparent; }
+  .chips button { min-height:40px; padding:6px 13px; font-size:.95rem; border-radius:999px; background:var(--chip); border-color:transparent; }
   .chips button[data-state="in"]  { background:var(--accent); }
   .chips button[data-state="in"]::before  { content:"✓ "; }
   .chips button[data-state="out"] { background:transparent; border-color:var(--no); color:var(--no); text-decoration:line-through; }
@@ -40,7 +52,7 @@
   /* Bouton de tirage toujours à portée du pouce */
   .actionbar { position:fixed; left:0; right:0; bottom:0; z-index:10; padding:12px 16px calc(12px + env(safe-area-inset-bottom));
                background:linear-gradient(to top, var(--bg) 70%, transparent); }
-  .actionbar button { display:block; width:100%; max-width:640px; margin:0 auto; min-height:52px; font-weight:700; font-size:1.05rem;
+  .actionbar button { display:block; width:100%; max-width:640px; margin:0 auto; min-height:56px; font-weight:700; font-size:1.1rem;
                       background:var(--accent); border-color:var(--accent); box-shadow:0 6px 20px #0008; }
   .actionbar button:disabled { opacity:.7; cursor:wait; }
 
@@ -48,37 +60,84 @@
   .msg:empty { display:none; }
   .msg code { background:#0004; padding:2px 6px; border-radius:6px; word-break:break-all; }
 
-  .card { background:var(--card); border-radius:16px; padding:14px; display:none; scroll-margin-top:12px; }
-  .card.show { display:grid; grid-template-columns:104px 1fr; gap:4px 14px; grid-template-rows:auto 1fr auto auto; grid-template-areas:"cover head" "cover tags" "desc desc" "link link"; }
-  .card.show.nocover { grid-template-columns:1fr; grid-template-areas:"head" "tags" "desc" "link"; }
-  .card img { grid-area:cover; width:104px; aspect-ratio:2/3; object-fit:cover; border-radius:10px; background:#0003; }
+  .card { background:var(--card); border-radius:16px; padding:14px; display:none; scroll-margin-top:calc(12px + env(safe-area-inset-top)); }
+  .card.show { display:grid; grid-template-columns:110px 1fr; gap:4px 14px; grid-template-rows:auto 1fr auto auto;
+               grid-template-areas:"cover head" "cover tags" "desc desc" "actions actions"; }
+  .card.show.nocover { grid-template-columns:1fr; grid-template-areas:"head" "tags" "desc" "actions"; }
+  .card img { grid-area:cover; width:110px; aspect-ratio:2/3; object-fit:cover; border-radius:10px; background:#0003; }
   .card img[hidden] { display:none; }
   .head { grid-area:head; min-width:0; }
-  .card h2 { margin:0 0 4px; font-size:1.1rem; line-height:1.25; overflow-wrap:anywhere; }
-  .sub { font-size:.85rem; color:var(--muted); margin:0; }
+  .card h2 { margin:0 0 4px; font-size:1.2rem; line-height:1.25; overflow-wrap:anywhere; }
+  .sub { font-size:.95rem; color:var(--muted); margin:0; }
+  .rating { font-size:.95rem; margin:4px 0 0; color:var(--muted); }
+  .rating b { color:var(--gold); }
   .tags { grid-area:tags; display:flex; flex-wrap:wrap; gap:6px; align-content:flex-start; margin-top:6px; }
-  .tags span { font-size:.75rem; background:var(--chip); padding:3px 8px; border-radius:999px; color:var(--muted); }
+  .tags span { font-size:.8rem; background:var(--chip); padding:3px 9px; border-radius:999px; color:var(--muted); }
   .descwrap { grid-area:desc; margin-top:10px; }
-  .desc { font-size:.95rem; color:var(--muted); line-height:1.45; white-space:pre-line; margin:0;
+  .desc { font-size:1rem; color:var(--muted); line-height:1.5; white-space:pre-line; margin:0;
           display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:6; overflow:hidden; }
   .desc.open { display:block; }
-  .more { min-height:36px; padding:4px 0; border:0; background:none; color:var(--accent); font-size:.9rem; }
-  .more[hidden] { display:none; }
-  .card a.btn { grid-area:link; margin-top:12px; display:flex; align-items:center; justify-content:center; min-height:44px;
-                border:1px solid var(--accent); border-radius:12px; color:var(--accent); text-decoration:none; font-weight:600; }
+  .descbar { display:flex; flex-wrap:wrap; gap:4px 16px; align-items:center; }
+  .more, .translate { min-height:40px; padding:4px 0; border:0; background:none; color:var(--accent); font-size:.95rem; }
+  .more[hidden], .translate[hidden] { display:none; }
+  .tnote { font-size:.8rem; color:var(--muted); font-style:italic; }
+  .tnote:empty { display:none; }
+  .actions { grid-area:actions; display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+  .btn { display:flex; align-items:center; justify-content:center; gap:6px; min-height:48px; padding:8px 12px; border-radius:12px;
+         border:1px solid var(--accent); background:transparent; color:var(--accent); text-decoration:none; font-weight:600; font-size:1rem; text-align:center; }
+  .btn.primary { grid-column:1 / -1; background:var(--accent); color:#fff; }
+  .btn[aria-pressed="true"] { background:#f5c45122; border-color:var(--gold); color:var(--gold); }
+  .btn[hidden] { display:none; }
+
+  .tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; }
+  .tabs button { font-size:.95rem; }
+  .tabs button[aria-selected="true"] { background:var(--chip); border-color:var(--accent); }
+  .list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .list li { display:grid; grid-template-columns:44px 1fr auto; gap:10px; align-items:center; }
+  .list img { width:44px; height:64px; object-fit:cover; border-radius:6px; background:#0003; }
+  .list .t { min-width:0; }
+  .list .t a { color:var(--text); text-decoration:none; font-weight:600; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .list .t small { color:var(--muted); font-size:.85rem; }
+  .list .acts { display:flex; gap:6px; }
+  .list .acts a, .list .acts button { min-width:44px; min-height:44px; padding:0 10px; display:flex; align-items:center; justify-content:center;
+                                      border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--text); text-decoration:none; font-size:1rem; }
+  .empty { color:var(--muted); font-size:.95rem; margin:4px 0; }
+  .listfoot { display:flex; justify-content:flex-end; margin-top:10px; }
+  .listfoot button { font-size:.9rem; min-height:40px; color:var(--muted); }
+  .listfoot button[hidden] { display:none; }
+
+  .install { display:flex; gap:10px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px 12px; font-size:.95rem; }
+  .install[hidden] { display:none; }
+  .install p { margin:0; flex:1; }
+  .install button { min-height:40px; font-size:.9rem; }
+  .install button[hidden] { display:none; }
+  .install .x { border:0; background:none; color:var(--muted); min-width:40px; }
+  .kbd { display:none; text-align:center; font-size:.85rem; color:var(--muted); }
 
   @media (min-width:600px) {
+    html { font-size:100%; }
     body { padding-top:28px; }
     h1 { font-size:1.6rem; }
-    .filters { grid-template-columns:repeat(4, 1fr); }
+    .filters { grid-template-columns:repeat(3, 1fr); }
+    .filters .wide { grid-column:auto; }
     .card.show { grid-template-columns:140px 1fr; }
     .card img { width:140px; }
+    .actions { grid-template-columns:2fr 1fr 1fr; }
+    .btn.primary { grid-column:auto; }
   }
+  @media (hover:hover) and (pointer:fine) { .kbd { display:block; } }
 </style>
 </head>
 <body>
 <main>
-<h1>🎲 Manhwa au hasard</h1>
+<h1 id="h1">🎲 Manhwa au hasard</h1>
+
+<div class="install" id="install" hidden>
+  <p id="installtext">Installe l'appli sur ton écran d'accueil.</p>
+  <button type="button" id="installbtn">Installer</button>
+  <button type="button" class="x" id="installx" aria-label="Masquer">✕</button>
+</div>
+
 <div class="filters">
   <select id="lang" aria-label="Langue de traduction">
     <option value="fr">En français</option>
@@ -94,18 +153,41 @@
     <option value="ongoing">En cours</option>
     <option value="completed">Terminé</option>
   </select>
-  <select id="minch" aria-label="Nombre minimum de chapitres">
-    <option value="1">1+ chapitre</option>
-    <option value="10">10+ chapitres</option>
-    <option value="30">30+ chapitres</option>
-    <option value="50">50+ chapitres</option>
-    <option value="100">100+ chapitres</option>
+  <select id="year" aria-label="Année de parution">
+    <option value="">Toutes années</option>
+    <option value="2024+">2024 et après</option>
+    <option value="2020+">2020 et après</option>
+    <option value="2015+">2015 et après</option>
+    <option value="-2015">Avant 2015</option>
+  </select>
+  <!-- valeur « min-max » : chapitres réellement disponibles dans la langue choisie -->
+  <select id="chapters" aria-label="Nombre de chapitres disponibles">
+    <option value="1-">Toutes longueurs</option>
+    <option value="5-">5 chapitres ou +</option>
+    <option value="10-">10 chapitres ou +</option>
+    <option value="20-">20 chapitres ou +</option>
+    <option value="30-">30 chapitres ou +</option>
+    <option value="50-">50 chapitres ou +</option>
+    <option value="100-">100 chapitres ou +</option>
+    <option value="200-">200 chapitres ou +</option>
+    <option value="1-10">Très court (1 à 10)</option>
+    <option value="10-30">Court (10 à 30)</option>
+    <option value="30-60">Moyen (30 à 60)</option>
+    <option value="60-120">Long (60 à 120)</option>
+    <option value="120-">Très long (120 et +)</option>
+  </select>
+  <select id="pop" aria-label="Popularité">
+    <option value="">Toute popularité</option>
+    <option value="top10">Très populaires</option>
+    <option value="top30">Populaires</option>
+    <option value="gems">Pépites méconnues</option>
   </select>
 </div>
+<label class="toggle"><input type="checkbox" id="noseen" checked> Ne pas retomber sur une œuvre déjà tirée</label>
 
-<details class="tagpanel" id="tagpanel">
-  <summary>Genres et thèmes <span class="count" id="tagcount"></span></summary>
-  <div class="tagbody">
+<details class="panel" id="tagpanel">
+  <summary>Genres, thèmes et format <span class="count" id="tagcount"></span></summary>
+  <div class="panelbody">
     <div class="tagtools">
       <select id="tagmode" aria-label="Combinaison des tags inclus">
         <option value="AND">Tous les tags cochés</option>
@@ -113,7 +195,8 @@
       </select>
       <button type="button" id="tagreset">Effacer</button>
     </div>
-    <p class="taghelp">Touche un tag pour l'inclure, encore pour l'exclure, une 3ᵉ fois pour le retirer.</p>
+    <p class="help">Touche un tag pour l'inclure, encore pour l'exclure, une 3ᵉ fois pour le retirer.</p>
+    <div class="taggroup"><h3>Format</h3><div class="chips" id="chips-format"></div></div>
     <div class="taggroup"><h3>Genres</h3><div class="chips" id="chips-genre">Chargement…</div></div>
     <div class="taggroup"><h3>Thèmes</h3><div class="chips" id="chips-theme"></div></div>
   </div>
@@ -125,14 +208,36 @@
   <div class="head">
     <h2 id="title"></h2>
     <p class="sub" id="sub"></p>
+    <p class="rating" id="rating"></p>
   </div>
   <div class="tags" id="tags"></div>
   <div class="descwrap">
     <p class="desc" id="desc"></p>
-    <button type="button" class="more" id="more" hidden>Lire la suite</button>
+    <div class="descbar">
+      <button type="button" class="more" id="more" hidden>Lire la suite</button>
+      <button type="button" class="translate" id="translate" hidden>Traduire en français</button>
+      <span class="tnote" id="tnote"></span>
+    </div>
   </div>
-  <a class="btn" id="link" target="_blank" rel="noopener noreferrer">Voir sur MangaDex ↗</a>
+  <div class="actions">
+    <a class="btn primary" id="read" target="_blank" rel="noopener noreferrer">▶ Lire le chapitre 1</a>
+    <button type="button" class="btn" id="save" aria-pressed="false">☆ À lire</button>
+    <a class="btn" id="link" target="_blank" rel="noopener noreferrer">Fiche ↗</a>
+  </div>
 </article>
+
+<details class="panel" id="listpanel">
+  <summary>Ma liste <span class="count" id="listcount"></span></summary>
+  <div class="panelbody">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tab-toread" aria-selected="true">À lire</button>
+      <button type="button" role="tab" id="tab-history" aria-selected="false">Historique</button>
+    </div>
+    <ul class="list" id="list"></ul>
+    <div class="listfoot"><button type="button" id="clearlist">Vider</button></div>
+  </div>
+</details>
+<p class="kbd">Astuce : appuie sur <b>Espace</b> pour tirer à nouveau.</p>
 </main>
 <div class="actionbar"><button id="go">🎲 Tirer au hasard</button></div>
 <script>
@@ -140,11 +245,16 @@
 // (Edge Function Supabase, code dans supabase/functions/mangadex-proxy).
 const PROXY = "https://knmgodvpxkirynavofon.supabase.co/functions/v1/mangadex-proxy";
 const API = PROXY;
-const MAX_WINDOW = 10000; // l'API refuse offset + limit > 10000
-const BATCH = 10;         // candidats récupérés par appel, vérifiés un par un pour les chapitres
-const MAX_BATCHES = 3;    // au-delà, on abandonne et on propose d'élargir les filtres
+const MAX_WINDOW = 10000;  // l'API refuse offset + limit > 10000
+const BATCH = 50;          // œuvres récupérées par appel (filtres année / « déjà vu » appliqués ici)
+const MAX_BATCHES = 4;
+const MAX_CHECKS = 15;     // vérifications de chapitres max par tirage (1 appel chacune)
+const HISTORY_MAX = 500;
 const STATUS_FR = { ongoing: "En cours", completed: "Terminé", hiatus: "En pause", cancelled: "Abandonné" };
 const LANG_FR = { fr: "en français", en: "en anglais" };
+const LANG_NAME = { fr: "français", en: "anglais" };
+const ORIGIN_NAME = { ko: "Manhwa", ja: "Manga", zh: "Manhua" };
+const FORMAT_TAGS = ["Long Strip", "Full Color", "Official Colored", "Web Comic", "Oneshot", "Adaptation"];
 // Noms français des tags MangaDex (l'API ne les fournit qu'en anglais).
 const TAG_FR = {
   "Action":"Action","Adventure":"Aventure","Boys' Love":"Boys' Love","Comedy":"Comédie","Crime":"Crime","Drama":"Drame",
@@ -160,15 +270,51 @@ const TAG_FR = {
   "Samurai":"Samouraï","School Life":"Vie scolaire","Shota":"Shota","Supernatural":"Surnaturel","Survival":"Survie",
   "Time Travel":"Voyage dans le temps","Traditional Games":"Jeux traditionnels","Vampires":"Vampires","Video Games":"Jeux vidéo",
   "Villainess":"Méchante","Virtual Reality":"Réalité virtuelle","Zombies":"Zombies",
-  "Long Strip":"Format webtoon","Full Color":"Tout en couleur","Web Comic":"Web comic","Oneshot":"One-shot","Adaptation":"Adaptation",
+  "Long Strip":"Webtoon (défilement)","Full Color":"Tout en couleur","Official Colored":"Couleurs officielles",
+  "Web Comic":"Web comic","Oneshot":"One-shot","Adaptation":"Adaptation",
 };
 const $ = id => document.getElementById(id);
 const totals = new Map();       // nombre de résultats par combinaison de filtres
-const chapterCache = new Map(); // nombre de chapitres par "id|langue"
-const tagState = new Map();     // id du tag -> "in" | "out"
+const chapterCache = new Map(); // { count, firstId, firstNum } par "id|langue"
+let tagState = new Map();       // id du tag -> "in" | "out"
 let lastId = null;
+let current = null;             // œuvre affichée (format liste)
+
+// ---- Stockage local (filtres, historique, à lire) ----------------------------
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("mh." + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("mh." + k, JSON.stringify(v)); } catch {} },
+};
+let history = store.get("history", []); // plus récent en premier
+let toread = store.get("toread", []);
+const FILTER_IDS = ["lang", "origin", "status", "year", "chapters", "pop", "tagmode"];
+
+function saveFilters() {
+  const f = Object.fromEntries(FILTER_IDS.map(id => [id, $(id).value]));
+  f.noseen = $("noseen").checked;
+  f.tags = [...tagState];
+  store.set("filters", f);
+}
+function restoreFilters() {
+  const f = store.get("filters", null);
+  if (!f) return;
+  for (const id of FILTER_IDS) if (f[id] != null && [...$(id).options].some(o => o.value === f[id])) $(id).value = f[id];
+  if (typeof f.noseen === "boolean") $("noseen").checked = f.noseen;
+  if (Array.isArray(f.tags)) tagState = new Map(f.tags);
+}
 
 const tagLabel = t => TAG_FR[t.attributes.name.en] || t.attributes.name.en;
+
+function updateHeading() {
+  const name = ORIGIN_NAME[$("origin").value];
+  $("h1").textContent = `🎲 ${name} au hasard`;
+  document.title = `${name} au hasard`;
+}
+
+function chapterRange() {
+  const [lo, hi] = $("chapters").value.split("-");
+  return [+lo || 1, hi ? +hi : Infinity];
+}
 
 function buildQuery(extra) {
   const p = new URLSearchParams();
@@ -177,7 +323,9 @@ function buildQuery(extra) {
   p.append("contentRating[]", "safe");
   p.append("contentRating[]", "suggestive");
   p.append("includes[]", "cover_art");
-  p.append("order[createdAt]", "asc"); // ordre stable pour que l'offset ait un sens
+  // Ordre stable pour que l'offset ait un sens ; par nombre de suivis si on filtre la popularité.
+  if ($("pop").value) p.append("order[followedCount]", "desc");
+  else p.append("order[createdAt]", "asc");
   if ($("status").value) p.append("status[]", $("status").value);
   for (const [id, s] of tagState) p.append(s === "in" ? "includedTags[]" : "excludedTags[]", id);
   if ([...tagState.values()].includes("in")) p.append("includedTagsMode", $("tagmode").value);
@@ -200,34 +348,48 @@ async function getJSON(url) {
   return r.json();
 }
 
-// ---- Genres et thèmes -------------------------------------------------------
+// ---- Genres, thèmes et format ------------------------------------------------
 async function loadTags() {
   try {
     const res = await getJSON(`${API}/manga/tag`);
-    for (const group of ["genre", "theme"]) {
-      const tags = res.data
-        .filter(t => t.attributes.group === group)
-        .sort((a, b) => tagLabel(a).localeCompare(tagLabel(b), "fr"));
+    const groups = {
+      format: res.data.filter(t => t.attributes.group === "format" && FORMAT_TAGS.includes(t.attributes.name.en))
+                      .sort((a, b) => FORMAT_TAGS.indexOf(a.attributes.name.en) - FORMAT_TAGS.indexOf(b.attributes.name.en)),
+      genre: res.data.filter(t => t.attributes.group === "genre"),
+      theme: res.data.filter(t => t.attributes.group === "theme"),
+    };
+    for (const [group, tags] of Object.entries(groups)) {
+      if (group !== "format") tags.sort((a, b) => tagLabel(a).localeCompare(tagLabel(b), "fr"));
       $("chips-" + group).replaceChildren(...tags.map(t => {
         const b = document.createElement("button");
         b.type = "button";
         b.dataset.id = t.id;
         b.textContent = tagLabel(t);
+        setChip(b, tagState.get(t.id));
         b.addEventListener("click", () => cycleTag(b));
         return b;
       }));
     }
+    // Retire de la sélection mémorisée les tags qui n'existent plus.
+    const known = new Set(res.data.map(t => t.id));
+    for (const id of [...tagState.keys()]) if (!known.has(id)) tagState.delete(id);
+    updateTagCount();
   } catch (e) {
     $("chips-genre").innerHTML = "Impossible de charger les tags : " + e.message;
   }
 }
 
+function setChip(b, state) {
+  if (state) b.dataset.state = state; else delete b.dataset.state;
+  b.setAttribute("aria-pressed", state === "in" ? "true" : state === "out" ? "mixed" : "false");
+}
+
 function cycleTag(b) {
   const next = { undefined: "in", in: "out", out: undefined }[tagState.get(b.dataset.id)];
-  if (next) { tagState.set(b.dataset.id, next); b.dataset.state = next; }
-  else { tagState.delete(b.dataset.id); delete b.dataset.state; }
-  b.setAttribute("aria-pressed", next === "in" ? "true" : next === "out" ? "mixed" : "false");
+  if (next) tagState.set(b.dataset.id, next); else tagState.delete(b.dataset.id);
+  setChip(b, next);
   updateTagCount();
+  saveFilters();
 }
 
 function updateTagCount() {
@@ -241,19 +403,29 @@ function updateTagCount() {
 
 $("tagreset").addEventListener("click", () => {
   tagState.clear();
-  document.querySelectorAll(".chips button").forEach(b => { delete b.dataset.state; b.setAttribute("aria-pressed", "false"); });
+  document.querySelectorAll(".chips button").forEach(b => setChip(b, undefined));
   updateTagCount();
+  saveFilters();
 });
 
 // ---- Chapitres ---------------------------------------------------------------
-// /aggregate donne les chapitres réellement disponibles dans la langue choisie,
-// regroupés par volume (chaque numéro de chapitre une seule fois, toutes équipes confondues).
-async function chapterCount(id, lang) {
+// /aggregate liste les chapitres dans la langue choisie (un numéro = une entrée, toutes équipes
+// confondues). On ignore ceux marqués indisponibles (retirés) et on repère le premier pour le lien de lecture.
+async function chapterInfo(id, lang) {
   const key = id + "|" + lang;
   if (!chapterCache.has(key)) {
     const res = await getJSON(`${API}/manga/${id}/aggregate?translatedLanguage[]=${lang}`);
-    const vols = Object.values(res.volumes || {});
-    chapterCache.set(key, vols.reduce((n, v) => n + Object.keys(v.chapters || {}).length, 0));
+    let count = 0, first = null;
+    for (const v of Object.values(res.volumes || {})) {
+      for (const c of Object.values(v.chapters || {})) {
+        if (c.isUnavailable) continue;
+        count++;
+        const n = parseFloat(c.chapter);
+        const rank = Number.isNaN(n) ? Infinity : n;
+        if (!first || rank < first.rank) first = { rank, id: c.id, num: c.chapter };
+      }
+    }
+    chapterCache.set(key, { count, firstId: first?.id ?? null, firstNum: first && first.rank !== Infinity ? first.num : null });
   }
   return chapterCache.get(key);
 }
@@ -263,52 +435,81 @@ function shuffle(a) {
   return a;
 }
 
+function yearOk(y) {
+  const v = $("year").value;
+  if (!v) return true;
+  if (!y) return false;
+  return v.startsWith("-") ? y < +v.slice(1) : y >= parseInt(v, 10);
+}
+
+// Plage de positions (dans l'ordre par nombre de suivis) selon le filtre de popularité.
+function popRange(total) {
+  switch ($("pop").value) {
+    case "top10": return [0, Math.max(1, Math.ceil(total * 0.1))];
+    case "top30": return [0, Math.max(1, Math.ceil(total * 0.3))];
+    case "gems":  return [Math.floor(total * 0.5), total];
+    default:      return [0, total];
+  }
+}
+
 // ---- Tirage ------------------------------------------------------------------
+let busy = false;
 async function pickRandom() {
+  if (busy) return;
+  busy = true;
   const btn = $("go");
   btn.disabled = true;
   btn.textContent = "Recherche…";
   $("tagpanel").open = false; // libère l'écran pour le résultat (la sélection reste résumée dans le titre)
   $("msg").textContent = "Recherche…";
   $("card").classList.remove("show");
-  const lang = $("lang").value, min = +$("minch").value;
+  const lang = $("lang").value;
+  const [minCh, maxCh] = chapterRange();
+  const seen = $("noseen").checked ? new Set(history.map(h => h.id)) : new Set();
   try {
     const key = buildQuery({});
-    // 1) nombre d'œuvres pour ces filtres (mis en cache)
     if (!totals.has(key)) {
       const first = await getJSON(`${API}/manga?${buildQuery({ limit: 1 })}`);
       totals.set(key, first.total);
     }
     const total = Math.min(totals.get(key), MAX_WINDOW);
     if (!total) throw new Error("aucune œuvre ne correspond à ces filtres.");
-    // 2) on tire un paquet d'œuvres à une position au hasard, puis on garde
-    //    la première (dans un ordre mélangé) qui a assez de chapitres.
-    let checked = 0;
-    for (let batch = 0; batch < MAX_BATCHES; batch++) {
-      const offset = Math.floor(Math.random() * Math.max(1, total - BATCH + 1));
-      const res = await getJSON(`${API}/manga?${buildQuery({ limit: BATCH, offset })}`);
+    const [lo, hi] = popRange(total);
+    const size = Math.min(BATCH, hi - lo);
+    let checks = 0, fetched = 0, skippedSeen = 0;
+    for (let batch = 0; batch < MAX_BATCHES && checks < MAX_CHECKS; batch++) {
+      const offset = lo + Math.floor(Math.random() * (hi - lo - size + 1));
+      const res = await getJSON(`${API}/manga?${buildQuery({ limit: size, offset })}`);
       totals.set(key, res.total);
-      const candidates = shuffle(res.data.filter(m => m.id !== lastId || res.data.length === 1));
+      fetched += res.data.length;
+      const candidates = shuffle(res.data.filter(m => {
+        if (m.id === lastId) return false;
+        if (seen.has(m.id)) { skippedSeen++; return false; }
+        return yearOk(m.attributes.year);
+      }));
       for (const m of candidates) {
-        checked++;
-        $("msg").textContent = `Vérification des chapitres… (${checked})`;
-        const n = await chapterCount(m.id, lang);
-        if (n >= min) {
+        if (checks >= MAX_CHECKS) break;
+        checks++;
+        $("msg").textContent = `Vérification des chapitres… (${checks})`;
+        const info = await chapterInfo(m.id, lang);
+        if (info.count >= minCh && info.count <= maxCh) {
           lastId = m.id;
-          show(m, n);
+          show(m, info);
           $("msg").textContent = "";
           return;
         }
       }
-      if (total <= BATCH) break; // tout a déjà été vérifié
+      if (hi - lo <= size) break; // toute la plage a déjà été parcourue
     }
-    throw new Error(`aucune œuvre avec au moins ${min} chapitre${min > 1 ? "s" : ""} ${LANG_FR[lang]} trouvée parmi les ${checked} vérifiées. Réessaie ou élargis les filtres.`);
+    let hint = "Réessaie ou élargis les filtres.";
+    if (skippedSeen && skippedSeen >= fetched / 2) hint = "Tu as déjà tiré beaucoup de ces œuvres : élargis les filtres ou décoche « Ne pas retomber… ».";
+    throw new Error(`rien trouvé qui corresponde à tous les critères. ${hint}`);
   } catch (e) {
     $("msg").innerHTML = "Impossible de charger : " + e.message;
   } finally {
+    busy = false;
     btn.disabled = false;
-    btn.textContent = "🎲 Tirer au hasard";
-    // Sur mobile, amène le résultat (ou le message d'erreur) à l'écran.
+    btn.textContent = current ? "🎲 Encore" : "🎲 Tirer au hasard";
     const target = $("card").classList.contains("show") ? $("card") : $("msg");
     target.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -331,31 +532,103 @@ function cleanDesc(s) {
     .trim();
 }
 
-function show(m, chapters) {
+// Synopsis : d'abord celui de MangaDex dans la langue choisie, sinon un autre (souvent l'anglais) à traduire.
+function pickDesc(a, lang) {
+  if (a.description[lang]) return { text: a.description[lang], from: lang };
+  if (a.description.en) return { text: a.description.en, from: "en" };
+  const [from, text] = Object.entries(a.description)[0] || [];
+  return { text: text || "", from: from || lang };
+}
+
+// ---- Traduction du synopsis ---------------------------------------------------
+// 1) API Translator intégrée au navigateur (traduction sur l'appareil, gratuite, rien n'est envoyé) ;
+// 2) sinon, ouverture de Google Traduction dans un nouvel onglet.
+const baseLang = l => l.split("-")[0];
+let descSource = null; // { text, from, to } du synopsis affiché
+
+async function translatorAvailability(from, to) {
+  if (!("Translator" in self)) return "unavailable";
+  try { return await Translator.availability({ sourceLanguage: from, targetLanguage: to }); }
+  catch { return "unavailable"; }
+}
+
+async function translateDesc(fromClick) {
+  const src = descSource;
+  if (!src) return;
+  const { text, from, to } = src;
+  const avail = await translatorAvailability(from, to);
+  if (avail === "unavailable") {
+    if (fromClick) window.open(`https://translate.google.com/?sl=${from}&tl=${to}&op=translate&text=${encodeURIComponent(text.slice(0, 4500))}`, "_blank", "noopener");
+    return;
+  }
+  if (avail !== "available" && !fromClick) return; // le téléchargement du modèle exige un geste de l'utilisateur
+  try {
+    $("tnote").textContent = avail === "available" ? "Traduction…" : "Téléchargement du traducteur…";
+    const tr = await Translator.create({ sourceLanguage: from, targetLanguage: to });
+    const out = await tr.translate(text);
+    if (descSource !== src) return; // une autre fiche a été tirée entre-temps
+    $("desc").textContent = out;
+    $("translate").hidden = true;
+    $("tnote").textContent = `Traduit automatiquement de l'${from === "en" ? "anglais" : from}`;
+    updateMore();
+  } catch {
+    if (descSource === src) $("tnote").textContent = "";
+    if (fromClick) window.open(`https://translate.google.com/?sl=${from}&tl=${to}&op=translate&text=${encodeURIComponent(text.slice(0, 4500))}`, "_blank", "noopener");
+  }
+}
+
+$("translate").addEventListener("click", () => translateDesc(true));
+
+const chapLabel = (n, lang) => `${n} chapitre${n > 1 ? "s" : ""} ${LANG_FR[lang]}`;
+const fmtNum = n => n >= 1000 ? (n / 1000).toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " k" : String(n);
+
+function updateMore() {
+  const d = $("desc");
+  const open = d.classList.contains("open");
+  $("more").hidden = !open && d.scrollHeight <= d.clientHeight + 2;
+  $("more").textContent = open ? "Réduire" : "Lire la suite";
+}
+
+function show(m, info) {
   const a = m.attributes;
   const lang = $("lang").value;
-  const desc = a.description[lang] || a.description.en || Object.values(a.description)[0] || "";
-  const cover = m.relationships.find(r => r.type === "cover_art");
+  const coverRel = m.relationships.find(r => r.type === "cover_art");
+  const coverUrl = coverRel?.attributes?.fileName ? `${PROXY}/cover/${m.id}/${coverRel.attributes.fileName}.256.jpg` : "";
   const title = pickTitle(a, lang);
+  const sub = [STATUS_FR[a.status] || a.status, a.year, chapLabel(info.count, lang)].filter(Boolean).join(" · ");
+
+  current = { id: m.id, title, cover: coverUrl, sub, firstId: info.firstId, ts: Date.now() };
+  addToHistory(current);
+
   $("title").textContent = title;
-  $("sub").textContent = [
-    STATUS_FR[a.status] || a.status,
-    a.year,
-    `${chapters} chapitre${chapters > 1 ? "s" : ""} ${LANG_FR[lang]}`,
-  ].filter(Boolean).join(" · ");
-  $("desc").textContent = cleanDesc(desc) || "Pas de synopsis.";
+  $("sub").textContent = sub;
+  $("rating").textContent = "";
+
+  // Synopsis (+ traduction si pas disponible dans la langue choisie)
+  const d = pickDesc(a, lang);
+  const text = cleanDesc(d.text);
+  $("desc").textContent = text || "Pas de synopsis.";
   $("desc").classList.remove("open");
+  $("tnote").textContent = "";
+  descSource = text && baseLang(d.from) !== lang ? { text, from: baseLang(d.from), to: lang } : null;
+  $("translate").hidden = !descSource;
+  $("translate").textContent = `Traduire en ${LANG_NAME[lang]}`;
+
   $("link").href = `https://mangadex.org/title/${m.id}`;
-  const img = $("cover");
-  $("card").classList.toggle("nocover", !cover?.attributes?.fileName);
-  if (cover?.attributes?.fileName) {
-    img.hidden = false;
-    img.alt = "Couverture de " + title;
-    img.src = `${PROXY}/cover/${m.id}/${cover.attributes.fileName}.256.jpg`;
-  } else {
-    img.hidden = true;
-    img.removeAttribute("src");
+  const read = $("read");
+  read.hidden = !info.firstId;
+  if (info.firstId) {
+    read.href = `https://mangadex.org/chapter/${info.firstId}`;
+    const n = info.firstNum;
+    read.textContent = !n || n === "1" ? "▶ Lire le chapitre 1" : parseFloat(n) === 0 ? "▶ Lire le prologue" : `▶ Lire à partir du chapitre ${n}`;
   }
+  updateSaveButton();
+
+  const img = $("cover");
+  $("card").classList.toggle("nocover", !coverUrl);
+  if (coverUrl) { img.hidden = false; img.alt = "Couverture de " + title; img.src = coverUrl; }
+  else { img.hidden = true; img.removeAttribute("src"); }
+
   $("tags").replaceChildren(...a.tags
     .filter(t => t.attributes.group === "genre" || t.attributes.group === "theme")
     .slice(0, 8)
@@ -365,19 +638,165 @@ function show(m, chapters) {
       return s;
     }));
   $("card").classList.add("show");
-  // « Lire la suite » seulement si le synopsis dépasse les 6 lignes affichées.
-  const d = $("desc");
-  $("more").hidden = d.scrollHeight <= d.clientHeight + 2;
-  $("more").textContent = "Lire la suite";
+  updateMore();
+  loadStats(m.id);
+  if (descSource) translateDesc(false); // traduit tout de suite si le traducteur est déjà prêt
+}
+
+// Note moyenne et nombre de suivis (1 appel, ne bloque pas l'affichage).
+async function loadStats(id) {
+  try {
+    const res = await getJSON(`${API}/statistics/manga/${id}`);
+    if (current?.id !== id) return;
+    const s = res.statistics?.[id];
+    if (!s) return;
+    const note = s.rating?.bayesian ?? s.rating?.average;
+    const el = $("rating");
+    el.replaceChildren();
+    if (note) {
+      const b = document.createElement("b");
+      b.textContent = "★ " + note.toLocaleString("fr-FR", { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+      el.append(b, " / 10");
+    }
+    if (s.follows != null) el.append((note ? " · " : "") + `${fmtNum(s.follows)} abonnés`);
+  } catch { /* la note est un bonus : on n'affiche rien en cas d'échec */ }
 }
 
 $("more").addEventListener("click", () => {
-  const open = $("desc").classList.toggle("open");
-  $("more").textContent = open ? "Réduire" : "Lire la suite";
+  $("desc").classList.toggle("open");
+  updateMore();
 });
 
+// ---- Historique et liste « à lire » ------------------------------------------
+let tab = "toread";
+
+function addToHistory(item) {
+  history = [item, ...history.filter(h => h.id !== item.id)].slice(0, HISTORY_MAX);
+  store.set("history", history);
+  renderList();
+}
+
+function toggleToRead(item) {
+  if (toread.some(t => t.id === item.id)) toread = toread.filter(t => t.id !== item.id);
+  else toread = [{ ...item, ts: Date.now() }, ...toread];
+  store.set("toread", toread);
+  updateSaveButton();
+  renderList();
+}
+
+function updateSaveButton() {
+  const saved = current && toread.some(t => t.id === current.id);
+  $("save").setAttribute("aria-pressed", saved ? "true" : "false");
+  $("save").textContent = saved ? "★ Dans ma liste" : "☆ À lire";
+}
+
+function renderList() {
+  const items = tab === "toread" ? toread : history.slice(0, 50);
+  $("tab-toread").textContent = `À lire (${toread.length})`;
+  $("tab-history").textContent = `Historique (${history.length})`;
+  $("tab-toread").setAttribute("aria-selected", tab === "toread");
+  $("tab-history").setAttribute("aria-selected", tab === "history");
+  $("listcount").textContent = toread.length ? `(${toread.length} à lire)` : "";
+  $("clearlist").textContent = tab === "toread" ? "Vider la liste à lire" : "Effacer l'historique";
+  $("clearlist").hidden = !items.length;
+  if (!items.length) {
+    const p = document.createElement("p");
+    p.className = "empty";
+    p.textContent = tab === "toread" ? "Touche « ☆ À lire » sur une fiche pour la garder ici." : "Tes tirages apparaîtront ici.";
+    $("list").replaceChildren(p);
+    return;
+  }
+  $("list").replaceChildren(...items.map(it => {
+    const li = document.createElement("li");
+    const img = document.createElement("img");
+    img.alt = ""; img.loading = "lazy";
+    if (it.cover) img.src = it.cover;
+    img.addEventListener("error", () => img.removeAttribute("src"));
+    const t = document.createElement("div");
+    t.className = "t";
+    const a = document.createElement("a");
+    a.href = `https://mangadex.org/title/${it.id}`; a.target = "_blank"; a.rel = "noopener noreferrer";
+    a.textContent = it.title;
+    const small = document.createElement("small");
+    small.textContent = it.sub;
+    t.append(a, small);
+    const acts = document.createElement("div");
+    acts.className = "acts";
+    if (it.firstId) {
+      const r = document.createElement("a");
+      r.href = `https://mangadex.org/chapter/${it.firstId}`; r.target = "_blank"; r.rel = "noopener noreferrer";
+      r.textContent = "▶"; r.setAttribute("aria-label", "Lire " + it.title);
+      acts.append(r);
+    }
+    const b = document.createElement("button");
+    b.type = "button";
+    const inList = toread.some(x => x.id === it.id);
+    b.textContent = tab === "toread" ? "✕" : inList ? "★" : "☆";
+    b.setAttribute("aria-label", tab === "toread" ? "Retirer de la liste" : inList ? "Retirer de la liste à lire" : "Ajouter à la liste à lire");
+    b.addEventListener("click", () => toggleToRead(it));
+    acts.append(b);
+    li.append(img, t, acts);
+    return li;
+  }));
+}
+
+$("tab-toread").addEventListener("click", () => { tab = "toread"; renderList(); });
+$("tab-history").addEventListener("click", () => { tab = "history"; renderList(); });
+$("clearlist").addEventListener("click", () => {
+  const what = tab === "toread" ? "la liste à lire" : "l'historique (les œuvres pourront de nouveau sortir)";
+  if (!confirm(`Effacer ${what} ?`)) return;
+  if (tab === "toread") { toread = []; store.set("toread", toread); updateSaveButton(); }
+  else { history = []; store.set("history", history); }
+  renderList();
+});
+$("save").addEventListener("click", () => current && toggleToRead(current));
+
+// ---- Installation sur l'écran d'accueil --------------------------------------
+let installEvent = null;
+const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+const installDismissed = () => store.get("installDismissed", false);
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  installEvent = e;
+  if (!installDismissed()) $("install").hidden = false;
+});
+$("installbtn").addEventListener("click", async () => {
+  if (installEvent) {
+    installEvent.prompt();
+    await installEvent.userChoice;
+    installEvent = null;
+  }
+  $("install").hidden = true;
+});
+$("installx").addEventListener("click", () => { $("install").hidden = true; store.set("installDismissed", true); });
+// iOS (Safari) n'a pas de bouton d'installation : on explique la manip.
+if (!standalone && /iphone|ipad|ipod/i.test(navigator.userAgent) && !installDismissed()) {
+  $("installtext").textContent = "Pour l'installer : touche Partager (carré avec une flèche) puis « Sur l'écran d'accueil ».";
+  $("installbtn").hidden = true;
+  $("install").hidden = false;
+}
+window.addEventListener("appinstalled", () => { $("install").hidden = true; });
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+
+// ---- Démarrage ---------------------------------------------------------------
 $("cover").addEventListener("error", e => { e.target.hidden = true; $("card").classList.add("nocover"); });
 $("go").addEventListener("click", pickRandom);
+for (const id of FILTER_IDS) $(id).addEventListener("change", () => { saveFilters(); if (id === "origin") updateHeading(); });
+$("noseen").addEventListener("change", saveFilters);
+// Espace = nouveau tirage (sauf quand on est dans un champ ou sur un bouton).
+document.addEventListener("keydown", e => {
+  if (e.code !== "Space" || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.target.closest("input, select, textarea, button, a, summary")) return;
+  e.preventDefault();
+  pickRandom();
+});
+
+restoreFilters();
+updateHeading();
+updateTagCount();
+renderList();
 loadTags();
 </script>
 </body>

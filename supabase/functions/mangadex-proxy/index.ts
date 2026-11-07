@@ -4,6 +4,7 @@
 //   GET /mangadex-proxy/manga?...                    -> https://api.mangadex.org/manga?...
 //   GET /mangadex-proxy/manga/tag                    -> https://api.mangadex.org/manga/tag
 //   GET /mangadex-proxy/manga/<id>/aggregate?...     -> https://api.mangadex.org/manga/<id>/aggregate?...
+//   GET /mangadex-proxy/statistics/manga/<id>        -> https://api.mangadex.org/statistics/manga/<id>
 //   GET /mangadex-proxy/cover/<mangaId>/<fichier>    -> https://uploads.mangadex.org/covers/<mangaId>/<fichier>
 // Seules ces routes sont relayées (pas de proxy ouvert).
 
@@ -15,6 +16,7 @@ const ALLOWED_ORIGINS = [
 const USER_AGENT = "manhwa-hasard/1.0 (+https://github.com/TrisAzyr/manhwa-hasard)";
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const AGGREGATE_RE = new RegExp(`^/manga/(${UUID})/aggregate$`, "i");
+const STATS_RE = new RegExp(`^/statistics/manga/(${UUID})$`, "i");
 const COVER_RE = new RegExp(`^/cover/(${UUID})/([0-9a-f-]+\\.(?:jpg|jpeg|png|gif|webp)\\.(?:256|512)\\.jpg)$`, "i");
 
 function corsHeaders(origin: string | null): Record<string, string> {
@@ -44,6 +46,9 @@ Deno.serve(async (req) => {
     cacheControl = "public, max-age=86400";
   } else if (AGGREGATE_RE.test(path)) {
     target = `https://api.mangadex.org${path}${url.search}`;
+    cacheControl = "public, max-age=3600";
+  } else if (STATS_RE.test(path)) {
+    target = `https://api.mangadex.org${path}`;
     cacheControl = "public, max-age=3600";
   } else if (cover) {
     target = `https://uploads.mangadex.org/covers/${cover[1]}/${cover[2]}`;
