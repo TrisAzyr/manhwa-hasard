@@ -2,99 +2,139 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1230">
 <title>Manhwa au hasard</title>
 <style>
-  :root { --bg:#0e1230; --card:#1a1f4a; --accent:#8b6cf0; --text:#e8e9ff; --muted:#9aa0d0; --chip:#2a3070; --no:#e0607a; }
+  :root { --bg:#0e1230; --card:#1a1f4a; --accent:#8b6cf0; --text:#e8e9ff; --muted:#9aa0d0; --chip:#2a3070; --line:#333a7a; --no:#e0607a; color-scheme:dark; }
   * { box-sizing:border-box; }
-  body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:24px 16px; }
-  h1 { margin:0 0 16px; font-size:1.5rem; }
-  .filters { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:12px; }
-  select, button { font:inherit; padding:10px 14px; border-radius:10px; border:1px solid #333a7a; background:var(--card); color:var(--text); }
-  button { cursor:pointer; }
-  button.primary { background:var(--accent); border-color:var(--accent); font-weight:600; }
-  button.primary:disabled { opacity:.6; cursor:wait; }
+  html { -webkit-text-size-adjust:100%; }
+  body { margin:0; font-family:system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh;
+         padding:16px 16px calc(96px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color:transparent; }
+  main { max-width:640px; margin:0 auto; display:flex; flex-direction:column; gap:12px; }
+  h1 { margin:0 0 4px; font-size:1.3rem; text-align:center; }
+  /* 16px minimum dans les champs : évite le zoom automatique d'iOS au toucher */
+  select, button { font:inherit; font-size:1rem; min-height:44px; padding:8px 12px; border-radius:12px; border:1px solid var(--line); background:var(--card); color:var(--text); }
+  button { cursor:pointer; touch-action:manipulation; }
+  .filters { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .filters select { width:100%; min-width:0; }
 
-  details.tagpanel { max-width:760px; width:100%; background:var(--card); border-radius:14px; padding:10px 14px; margin-bottom:16px; }
-  details.tagpanel summary { cursor:pointer; font-weight:600; padding:4px 0; }
-  details.tagpanel summary .count { font-weight:400; color:var(--muted); font-size:.9rem; }
-  .tagtools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:10px 0; font-size:.85rem; color:var(--muted); }
-  .tagtools select, .tagtools button { padding:6px 10px; font-size:.85rem; }
-  .taggroup h3 { margin:12px 0 6px; font-size:.85rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
-  .chips { display:flex; flex-wrap:wrap; gap:6px; }
-  .chips button { padding:4px 10px; font-size:.8rem; border-radius:999px; background:var(--chip); border-color:transparent; color:var(--text); }
+  details.tagpanel { background:var(--card); border-radius:14px; }
+  details.tagpanel summary { cursor:pointer; font-weight:600; min-height:48px; padding:12px 14px; display:flex; flex-wrap:wrap; align-items:center; gap:2px 8px; padding-right:36px; position:relative; list-style:none; }
+  details.tagpanel summary::-webkit-details-marker { display:none; }
+  details.tagpanel summary::after { content:"▾"; position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--muted); }
+  details.tagpanel[open] summary::after { content:"▴"; }
+  details.tagpanel summary .count { font-weight:400; color:var(--accent); font-size:.9rem; white-space:nowrap; }
+  .tagbody { padding:0 14px 14px; }
+  .tagtools { display:grid; grid-template-columns:1fr auto; gap:8px; margin-bottom:4px; }
+  .tagtools select { width:100%; min-width:0; }
+  .taghelp { font-size:.8rem; color:var(--muted); margin:4px 0 0; }
+  .taggroup h3 { margin:14px 0 8px; font-size:.8rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chips button { min-height:38px; padding:6px 12px; font-size:.9rem; border-radius:999px; background:var(--chip); border-color:transparent; }
   .chips button[data-state="in"]  { background:var(--accent); }
   .chips button[data-state="in"]::before  { content:"✓ "; }
   .chips button[data-state="out"] { background:transparent; border-color:var(--no); color:var(--no); text-decoration:line-through; }
   .chips button[data-state="out"]::before { content:"✕ "; }
 
-  .card { max-width:640px; width:100%; background:var(--card); border-radius:16px; padding:16px; display:none; gap:16px; margin-top:16px; }
-  .card.show { display:flex; }
-  .card img { width:140px; height:auto; border-radius:10px; align-self:flex-start; background:#0003; }
+  /* Bouton de tirage toujours à portée du pouce */
+  .actionbar { position:fixed; left:0; right:0; bottom:0; z-index:10; padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+               background:linear-gradient(to top, var(--bg) 70%, transparent); }
+  .actionbar button { display:block; width:100%; max-width:640px; margin:0 auto; min-height:52px; font-weight:700; font-size:1.05rem;
+                      background:var(--accent); border-color:var(--accent); box-shadow:0 6px 20px #0008; }
+  .actionbar button:disabled { opacity:.7; cursor:wait; }
+
+  .msg { color:var(--muted); text-align:center; margin:4px 0; }
+  .msg:empty { display:none; }
+  .msg code { background:#0004; padding:2px 6px; border-radius:6px; word-break:break-all; }
+
+  .card { background:var(--card); border-radius:16px; padding:14px; display:none; scroll-margin-top:12px; }
+  .card.show { display:grid; grid-template-columns:104px 1fr; gap:4px 14px; grid-template-rows:auto 1fr auto auto; grid-template-areas:"cover head" "cover tags" "desc desc" "link link"; }
+  .card.show.nocover { grid-template-columns:1fr; grid-template-areas:"head" "tags" "desc" "link"; }
+  .card img { grid-area:cover; width:104px; aspect-ratio:2/3; object-fit:cover; border-radius:10px; background:#0003; }
   .card img[hidden] { display:none; }
-  .card h2 { margin:0 0 4px; font-size:1.2rem; }
-  .sub { font-size:.8rem; color:var(--muted); margin:0 0 8px; }
-  .tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .head { grid-area:head; min-width:0; }
+  .card h2 { margin:0 0 4px; font-size:1.1rem; line-height:1.25; overflow-wrap:anywhere; }
+  .sub { font-size:.85rem; color:var(--muted); margin:0; }
+  .tags { grid-area:tags; display:flex; flex-wrap:wrap; gap:6px; align-content:flex-start; margin-top:6px; }
   .tags span { font-size:.75rem; background:var(--chip); padding:3px 8px; border-radius:999px; color:var(--muted); }
-  .desc { font-size:.9rem; color:var(--muted); line-height:1.4; max-height:9em; overflow:auto; white-space:pre-line; }
-  .card a { display:inline-block; margin-top:12px; color:var(--accent); }
-  .msg { margin-top:16px; color:var(--muted); text-align:center; max-width:520px; }
-  .msg code { background:#0004; padding:2px 6px; border-radius:6px; }
-  @media (max-width:520px){ .card{flex-direction:column;} .card img{width:100%;max-width:200px;} }
+  .descwrap { grid-area:desc; margin-top:10px; }
+  .desc { font-size:.95rem; color:var(--muted); line-height:1.45; white-space:pre-line; margin:0;
+          display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:6; overflow:hidden; }
+  .desc.open { display:block; }
+  .more { min-height:36px; padding:4px 0; border:0; background:none; color:var(--accent); font-size:.9rem; }
+  .more[hidden] { display:none; }
+  .card a.btn { grid-area:link; margin-top:12px; display:flex; align-items:center; justify-content:center; min-height:44px;
+                border:1px solid var(--accent); border-radius:12px; color:var(--accent); text-decoration:none; font-weight:600; }
+
+  @media (min-width:600px) {
+    body { padding-top:28px; }
+    h1 { font-size:1.6rem; }
+    .filters { grid-template-columns:repeat(4, 1fr); }
+    .card.show { grid-template-columns:140px 1fr; }
+    .card img { width:140px; }
+  }
 </style>
 </head>
 <body>
+<main>
 <h1>🎲 Manhwa au hasard</h1>
 <div class="filters">
   <select id="lang" aria-label="Langue de traduction">
-    <option value="fr">Traduit en français</option>
-    <option value="en">Traduit en anglais</option>
+    <option value="fr">En français</option>
+    <option value="en">En anglais</option>
+  </select>
+  <select id="origin" aria-label="Origine">
+    <option value="ko">Manhwa</option>
+    <option value="ja">Manga</option>
+    <option value="zh">Manhua</option>
   </select>
   <select id="status" aria-label="Statut">
     <option value="">Tous statuts</option>
     <option value="ongoing">En cours</option>
     <option value="completed">Terminé</option>
   </select>
-  <select id="origin" aria-label="Origine">
-    <option value="ko">Manhwa (coréen)</option>
-    <option value="ja">Manga (japonais)</option>
-    <option value="zh">Manhua (chinois)</option>
-  </select>
   <select id="minch" aria-label="Nombre minimum de chapitres">
-    <option value="1">Au moins 1 chapitre</option>
-    <option value="10">10 chapitres et +</option>
-    <option value="30">30 chapitres et +</option>
-    <option value="50">50 chapitres et +</option>
-    <option value="100">100 chapitres et +</option>
+    <option value="1">1+ chapitre</option>
+    <option value="10">10+ chapitres</option>
+    <option value="30">30+ chapitres</option>
+    <option value="50">50+ chapitres</option>
+    <option value="100">100+ chapitres</option>
   </select>
 </div>
 
 <details class="tagpanel" id="tagpanel">
   <summary>Genres et thèmes <span class="count" id="tagcount"></span></summary>
-  <div class="tagtools">
-    <span>1 clic : inclure · 2 clics : exclure · 3 clics : retirer</span>
-    <select id="tagmode" aria-label="Combinaison des tags inclus">
-      <option value="AND">Tous les tags cochés</option>
-      <option value="OR">Au moins un des tags cochés</option>
-    </select>
-    <button type="button" id="tagreset">Tout effacer</button>
+  <div class="tagbody">
+    <div class="tagtools">
+      <select id="tagmode" aria-label="Combinaison des tags inclus">
+        <option value="AND">Tous les tags cochés</option>
+        <option value="OR">Au moins un tag coché</option>
+      </select>
+      <button type="button" id="tagreset">Effacer</button>
+    </div>
+    <p class="taghelp">Touche un tag pour l'inclure, encore pour l'exclure, une 3ᵉ fois pour le retirer.</p>
+    <div class="taggroup"><h3>Genres</h3><div class="chips" id="chips-genre">Chargement…</div></div>
+    <div class="taggroup"><h3>Thèmes</h3><div class="chips" id="chips-theme"></div></div>
   </div>
-  <div class="taggroup"><h3>Genres</h3><div class="chips" id="chips-genre">Chargement…</div></div>
-  <div class="taggroup"><h3>Thèmes</h3><div class="chips" id="chips-theme"></div></div>
 </details>
 
-<button class="primary" id="go">Tirer au hasard</button>
-<div class="msg" id="msg" role="status">Clique sur le bouton pour découvrir une œuvre.</div>
-<div class="card" id="card">
+<div class="msg" id="msg" role="status">Choisis tes filtres puis touche « Tirer au hasard ».</div>
+<article class="card" id="card">
   <img id="cover" alt="" hidden>
-  <div>
+  <div class="head">
     <h2 id="title"></h2>
     <p class="sub" id="sub"></p>
-    <div class="tags" id="tags"></div>
-    <div class="desc" id="desc"></div>
-    <a id="link" target="_blank" rel="noopener noreferrer">Voir la fiche sur MangaDex ↗</a>
   </div>
-</div>
+  <div class="tags" id="tags"></div>
+  <div class="descwrap">
+    <p class="desc" id="desc"></p>
+    <button type="button" class="more" id="more" hidden>Lire la suite</button>
+  </div>
+  <a class="btn" id="link" target="_blank" rel="noopener noreferrer">Voir sur MangaDex ↗</a>
+</article>
+</main>
+<div class="actionbar"><button id="go">🎲 Tirer au hasard</button></div>
 <script>
 // MangaDex n'autorise pas les appels directs depuis un autre site : on passe par notre proxy
 // (Edge Function Supabase, code dans supabase/functions/mangadex-proxy).
@@ -227,6 +267,8 @@ function shuffle(a) {
 async function pickRandom() {
   const btn = $("go");
   btn.disabled = true;
+  btn.textContent = "Recherche…";
+  $("tagpanel").open = false; // libère l'écran pour le résultat (la sélection reste résumée dans le titre)
   $("msg").textContent = "Recherche…";
   $("card").classList.remove("show");
   const lang = $("lang").value, min = +$("minch").value;
@@ -265,6 +307,10 @@ async function pickRandom() {
     $("msg").innerHTML = "Impossible de charger : " + e.message;
   } finally {
     btn.disabled = false;
+    btn.textContent = "🎲 Tirer au hasard";
+    // Sur mobile, amène le résultat (ou le message d'erreur) à l'écran.
+    const target = $("card").classList.contains("show") ? $("card") : $("msg");
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
 
@@ -298,8 +344,10 @@ function show(m, chapters) {
     `${chapters} chapitre${chapters > 1 ? "s" : ""} ${LANG_FR[lang]}`,
   ].filter(Boolean).join(" · ");
   $("desc").textContent = cleanDesc(desc) || "Pas de synopsis.";
+  $("desc").classList.remove("open");
   $("link").href = `https://mangadex.org/title/${m.id}`;
   const img = $("cover");
+  $("card").classList.toggle("nocover", !cover?.attributes?.fileName);
   if (cover?.attributes?.fileName) {
     img.hidden = false;
     img.alt = "Couverture de " + title;
@@ -317,9 +365,18 @@ function show(m, chapters) {
       return s;
     }));
   $("card").classList.add("show");
+  // « Lire la suite » seulement si le synopsis dépasse les 6 lignes affichées.
+  const d = $("desc");
+  $("more").hidden = d.scrollHeight <= d.clientHeight + 2;
+  $("more").textContent = "Lire la suite";
 }
 
-$("cover").addEventListener("error", e => { e.target.hidden = true; });
+$("more").addEventListener("click", () => {
+  const open = $("desc").classList.toggle("open");
+  $("more").textContent = open ? "Réduire" : "Lire la suite";
+});
+
+$("cover").addEventListener("error", e => { e.target.hidden = true; $("card").classList.add("nocover"); });
 $("go").addEventListener("click", pickRandom);
 loadTags();
 </script>
